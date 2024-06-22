@@ -1,0 +1,17 @@
+import os
+
+BOO_KEY_GOOGLE: str = os.getenv('BOO_KEY_GOOGLE', default='AIzaSyDdcyTrWVUO7JuUg2T1k9HKtOFtM-1JXME')
+GOOGLE_AUTH_URL: str = os.getenv('GOOGLE_AUTH_URL', default='https://securetoken.googleapis.com/v1/token')
+API_BOO_HOST: str = os.getenv('API_BOO_HOST', default='https://api.prod.boo.dating')
+CDN_BOO_HOST: str = os.getenv('CDN_BOO_HOST', default='https://boo-prod.b-cdn.net')
+APP_VERSION: str = os.getenv('APP_VERSION', default='1.13.50')
+TZ: str = os.getenv('TZ', default='America/Sao_Paulo')
+LOCALE: str = os.getenv('COUNTRY_LOCALE', default='pt')
+COUNTRY_LOCALE: str = os.getenv('COUNTRY_LOCALE', default='pt_BR')
+APP_INSTANCE_ID: str = os.getenv('APP_INSTANCE_ID', default='d73d8e4a23a70705faeb506279c7482d')
+ADVERTISING_ID: str = os.getenv('ADVERTISING_ID', default='2b77e144-7e6f-42bd-a59f-09e945fec073')
+DEVICE_LANGUAGE: str = os.getenv('DEVICE_LANGUAGE', default='pt')
+OS_ANDROID: str = os.getenv('OS_ANDROID', default='android')
+OS_ANDROID_VERSION: str = os.getenv('OS_ANDROID_VERSION', default='8.1.0')
+PHONE_MODEL: str = os.getenv('PHONE_MODEL', default='VirtualBox')
+DEVICE_ID: str = os.getenv('DEVICE_ID', default='fb99b42351656f7e')
