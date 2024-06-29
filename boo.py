@@ -68,22 +68,32 @@ class BooClient:
     def sent_chats(self, before: str = '') -> ChatsResponse:
         return self._chats(chat_type='sent', query_params=dict(before=before))
 
-    def pending_chats(self) -> ChatsResponse:
-        return self._chats(chat_type='pending')
+    def pending_chats(self, before: str = '') -> ChatsResponse:
+        return self._chats(chat_type='pending', query_params=dict(before=before))
 
-    def messaged_chats(self) -> ChatsResponse:
-        return self._chats(chat_type='messaged')
+    def messaged_chats(self, before: str = '') -> ChatsResponse:
+        return self._chats(chat_type='messaged', query_params=dict(before=before))
 
-    def all_chats(self) -> ChatsResponse:
+    @classmethod
+    def _all_chats(cls, chats_f) -> ChatsResponse:
         all_chats_response = ChatsResponse(chats=[])
         before = ''
         while True:
-            sent_chats = self.sent_chats(before=before)
+            sent_chats = chats_f(before=before)
             all_chats_response.chats.extend(sent_chats.chats)
             before = sent_chats.last_chat_message_time()
             if len(sent_chats.chats) < 20:
                 break
         return all_chats_response
+
+    def all_sent_chats(self) -> ChatsResponse:
+        return self._all_chats(chats_f=self.sent_chats)
+
+    def all_messaged_chats(self) -> ChatsResponse:
+        return self._all_chats(chats_f=self.messaged_chats)
+
+    def all_pending_chats(self) -> ChatsResponse:
+        return self._all_chats(chats_f=self.pending_chats)
 
     def messages(self, chat_id, user_id) -> List[MessageResponse]:
         res = self._session.get(
@@ -177,7 +187,7 @@ class BooClient:
 
     def download_profile_pictures(self, profile: UserProfile) -> None:
         for picture in profile.pictures:
-            self.download_media(picture, to_folder=f'media/{profile.first_name}')
+            self.download_media(picture, to_folder=f'media/{profile.id}_{profile.first_name}')
 
     def like_daily_profiles(self, quantity: int = 20):
         liked = []
@@ -195,4 +205,7 @@ if __name__ == '__main__':
     client = BooClient(
         refresh_token=refresh_token
     )
-    client.like_daily_profiles(1000)
+    messaged = client.all_messaged_chats()
+    for chat in messaged.chats:
+        client.download_profile_pictures(chat.user)
+    print(len(messaged.chats))
