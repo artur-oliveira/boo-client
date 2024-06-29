@@ -179,6 +179,14 @@ class BooClient:
         for picture in profile.pictures:
             self.download_media(picture, to_folder=f'media/{profile.first_name}')
 
+    def like_daily_profiles(self, quantity: int = 20):
+        liked = []
+        while len(liked) < quantity:
+            profs = self.daily_profiles()
+            for prof in profs.profiles:
+                self.like(prof.id)
+                liked.append(prof.id)
+
 
 if __name__ == '__main__':
     refresh_token = os.getenv('REFRESH_TOKEN')
@@ -187,8 +195,4 @@ if __name__ == '__main__':
     client = BooClient(
         refresh_token=refresh_token
     )
-    profs = client.daily_profiles()
-    print(len(profs.profiles))
-    for prof in profs.profiles:
-        client.download_profile_pictures(prof)
-        print(prof.first_name)
+    client.like_daily_profiles(1000)

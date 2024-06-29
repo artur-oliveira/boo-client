@@ -144,6 +144,7 @@ class Religion(Enum):
     SPIRITUAL = "Spiritual"
     MORMON = "Mormon"
     BUDDHIST = "Buddhist"
+    HINDU = "Hindu"
 
 
 @dataclasses.dataclass
@@ -282,6 +283,9 @@ class Timezone(Enum):
     AMERICA_ARAGUAINA = "America/Araguaina"
     AMERICA_RIO_BRANCO = "America/Rio_Branco"
     AMERICA_BOA_VISTA = "America/Boa_Vista"
+    AMERICA_NORONHA = "America/Noronha"
+    AMERICA_CAMPO_GRANDE = "America/Campo_Grande"
+    America_Cuiaba = "America/Campo_Grande"
     ETC_GMT_3 = "Etc/GMT+3"
 
 
@@ -321,7 +325,7 @@ class UserProfile:
     verified: Optional[bool] = None
     verification_status: Optional[VerificationStatus] = None
     languages: Optional[List[str]] = None
-    timezone: Optional[Timezone] = None
+    timezone: Optional[str] = None
     hidden: Optional[bool] = None
     interest_points: Optional[List[InterestPoint]] = None
     enneagram: Optional[str] = None
@@ -359,7 +363,7 @@ class UserProfile:
         verified = from_union([from_bool, from_none], obj.get("verified"))
         verification_status = from_union([VerificationStatus, from_none], obj.get("verificationStatus"))
         languages = from_union([lambda x: from_list(from_str, x), from_none], obj.get("languages"))
-        timezone = from_union([Timezone, from_none], obj.get("timezone"))
+        timezone = from_union([from_str, from_none], obj.get("timezone"))
         hidden = from_union([from_bool, from_none], obj.get("hidden"))
         interest_points = from_union([lambda x: from_list(InterestPoint.from_dict, x), from_none],
                                      obj.get("interestPoints"))
@@ -434,7 +438,7 @@ class UserProfile:
         if self.languages is not None:
             result["languages"] = from_union([lambda x: from_list(from_str, x), from_none], self.languages)
         if self.timezone is not None:
-            result["timezone"] = from_union([lambda x: to_enum(Timezone, x), from_none], self.timezone)
+            result["timezone"] = from_union([from_str, from_none], self.timezone)
         if self.hidden is not None:
             result["hidden"] = from_union([from_none, from_bool], self.hidden)
         if self.interest_points is not None:
