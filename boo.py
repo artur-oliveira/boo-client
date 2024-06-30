@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 import os
 from typing import Any, List
 
@@ -7,6 +8,7 @@ import requests
 from constants import API_BOO_HOST, CDN_BOO_HOST, GOOGLE_AUTH_URL, BOO_KEY_GOOGLE
 from exceptions import BooClientException
 from http_utils import http_session
+from logger import LoggerFactory
 from models.authentication import AuthRequest, AuthResponse
 from models.chats import ChatsResponse
 from models.daily_profiles import DailyProfilesResponse
@@ -21,6 +23,7 @@ class BooClient:
     refresh_token: str = dataclasses.field()
     auth: AuthResponse = dataclasses.field(default=None)
     _session: requests.Session = dataclasses.field(default_factory=http_session)
+    _logger: logging.Logger = dataclasses.field(default_factory=lambda: LoggerFactory.get_stream_logger('BooClient'))
 
     def json_headers(self) -> dict:
         return {
@@ -164,6 +167,19 @@ class BooClient:
         if not res.ok:
             raise BooClientException(res.content.decode('utf-8'))
 
+    def direct_message(self, user_id, message, price: int = 50) -> None:
+        res = self._session.patch(
+            url=f'{API_BOO_HOST}/v1/user/sendDirectMessage',
+            headers=self.json_headers(),
+            json=dict(
+                user=user_id,
+                message=message,
+                price=price,
+            )
+        )
+        if not res.ok:
+            raise BooClientException(res.content.decode('utf-8'))
+
     def not_like(self, user_id) -> None:
         res = self._session.patch(
             url=f'{API_BOO_HOST}/v1/user/pass',
@@ -195,7 +211,21 @@ class BooClient:
             profs = self.daily_profiles()
             for prof in profs.profiles:
                 self.like(prof.id)
+                self._logger.info(f'liked profile {prof.first_name} with id {prof.id}')
                 liked.append(prof.id)
+                if len(liked) >= quantity:
+                    break
+
+    def message_daily_profiles(self, message, quantity: int = 20):
+        messaged = []
+        while len(messaged) < quantity:
+            profs = self.daily_profiles()
+            for prof in profs.profiles:
+                self.direct_message(prof.id, message)
+                self._logger.info(f'messaged profile {prof.first_name} with id {prof.id}')
+                messaged.append(prof.id)
+                if len(messaged) >= quantity:
+                    break
 
 
 if __name__ == '__main__':
@@ -205,7 +235,8 @@ if __name__ == '__main__':
     client = BooClient(
         refresh_token=refresh_token
     )
-    messaged = client.all_messaged_chats()
-    for chat in messaged.chats:
-        client.download_profile_pictures(chat.user)
-    print(len(messaged.chats))
+
+    # chats = client.all_sent_chats()
+    # print(f'sent chats {len(chats.chats)}')
+    # for chat in chats.chats:
+    #     client.download_profile_pictures(chat.user)

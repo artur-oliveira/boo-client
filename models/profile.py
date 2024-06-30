@@ -145,6 +145,8 @@ class Religion(Enum):
     MORMON = "Mormon"
     BUDDHIST = "Buddhist"
     HINDU = "Hindu"
+    MUSLIM = "Muslim"
+    JEWISH = "Jewish"
 
 
 @dataclasses.dataclass
