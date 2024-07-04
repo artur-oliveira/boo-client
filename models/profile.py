@@ -147,6 +147,9 @@ class Religion(Enum):
     HINDU = "Hindu"
     MUSLIM = "Muslim"
     JEWISH = "Jewish"
+    JAIN = "Jain"
+    SIKH = "Sikh"
+    ZOROASTRIAN = "Zoroastrian"
 
 
 @dataclasses.dataclass

@@ -1,6 +1,7 @@
 import dataclasses
 import logging
 import os
+from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Any, List
 
 import requests
@@ -12,6 +13,8 @@ from logger import LoggerFactory
 from models.authentication import AuthRequest, AuthResponse
 from models.chats import ChatsResponse
 from models.daily_profiles import DailyProfilesResponse
+from models.followers import FollowersResponse
+from models.following import FollowingResponse
 from models.init_app import InitAppResponse, InitAppRequest
 from models.messages import MessageResponse, message_response_from_dict, CreateMessage
 from models.profile import ProfileDetailResponse, UserProfile
@@ -156,7 +159,10 @@ class BooClient:
         )
         if not res.ok:
             raise BooClientException(res.content.decode('utf-8'))
-        return DailyProfilesResponse.from_dict(res.json())
+        response = DailyProfilesResponse.from_dict(res.json())
+        if not response.profiles:
+            raise BooClientException('no daily profiles')
+        return response
 
     def like(self, user_id) -> None:
         res = self._session.patch(
@@ -176,6 +182,35 @@ class BooClient:
                 message=message,
                 price=price,
             )
+        )
+        if not res.ok:
+            raise BooClientException(res.content.decode('utf-8'))
+
+    def followers(self, before: str = '') -> FollowersResponse:
+        res = self._session.get(
+            url=f'{API_BOO_HOST}/v1/follow/followers',
+            headers=self.json_headers(),
+            params=dict(before=before)
+        )
+        if not res.ok:
+            raise BooClientException(res.content.decode('utf-8'))
+        return FollowersResponse.from_dict(res.json())
+
+    def following(self, before: str = '') -> FollowingResponse:
+        res = self._session.get(
+            url=f'{API_BOO_HOST}/v1/follow/following',
+            headers=self.json_headers(),
+            params=dict(before=before)
+        )
+        if not res.ok:
+            raise BooClientException(res.content.decode('utf-8'))
+        return FollowingResponse.from_dict(res.json())
+
+    def unfollow(self, user_id) -> None:
+        res = self._session.patch(
+            url=f'{API_BOO_HOST}/v1/follow/unfollow',
+            headers=self.json_headers(),
+            json=dict(user=user_id)
         )
         if not res.ok:
             raise BooClientException(res.content.decode('utf-8'))
@@ -211,8 +246,10 @@ class BooClient:
             profs = self.daily_profiles()
             for prof in profs.profiles:
                 self.like(prof.id)
-                self._logger.info(f'liked profile {prof.first_name} with id {prof.id}')
                 liked.append(prof.id)
+                self._logger.info(
+                    f'messaged profile {prof.first_name}. {quantity - len(liked)} remaining'
+                )
                 if len(liked) >= quantity:
                     break
 
@@ -222,10 +259,26 @@ class BooClient:
             profs = self.daily_profiles()
             for prof in profs.profiles:
                 self.direct_message(prof.id, message)
-                self._logger.info(f'messaged profile {prof.first_name} with id {prof.id}')
                 messaged.append(prof.id)
+                self._logger.info(
+                    f'messaged profile {prof.first_name}. {quantity - len(messaged)} remaining'
+                )
                 if len(messaged) >= quantity:
                     break
+
+    def _direct_message_batch(self, args):
+        return self.direct_message(args[0], args[1])
+
+    def message_daily_profiles_batch(self, message, quantity: int = 20):
+        messaged = []
+        while len(messaged) < quantity:
+            profs = self.daily_profiles()
+            with ThreadPoolExecutor(max_workers=20) as pool:
+                pool.map(self._direct_message_batch, [(x.id, message,) for x in profs.profiles])
+                messaged.extend([x.id for x in profs.profiles])
+                self._logger.info(
+                    f'messaged profiles in batch. {quantity - len(messaged)} remaining'
+                )
 
 
 if __name__ == '__main__':
@@ -235,7 +288,6 @@ if __name__ == '__main__':
     client = BooClient(
         refresh_token=refresh_token
     )
-
     # chats = client.all_sent_chats()
     # print(f'sent chats {len(chats.chats)}')
     # for chat in chats.chats:
